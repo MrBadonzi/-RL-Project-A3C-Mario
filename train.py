@@ -30,12 +30,9 @@ def process_train(id, global_model, global_optimizer, args):
     for episode in range(args.num_episodes):
         curr_episode += 1
         model.load_state_dict(global_model.state_dict()) #Synchronize thread-specific parameters to global ones
-        if done:
-            hx = torch.zeros((1, 512), dtype=torch.float)
-            cx = torch.zeros((1, 512), dtype=torch.float)
-        else:
-            hx = hx.detach()
-            cx = cx.detach()
+        #FIXME changed here
+        hx = torch.zeros((1, 512), dtype=torch.float)
+        cx = torch.zeros((1, 512), dtype=torch.float)
         if args.gpu:
             hx = hx.cuda()
             cx = cx.cuda()
@@ -43,6 +40,7 @@ def process_train(id, global_model, global_optimizer, args):
         values = []
         rewards = []
         entropies = []
+        # TODO include steps for second so it does not get to the end of the timer if stuck
         while True:
             logits, value, hx, cx = model(state, hx, cx) #logits is result estimating Q value from Actor, value=state-value from the Critic
             policy = F.softmax(logits, dim=1) #policy probabilities from actor
@@ -88,7 +86,7 @@ def process_train(id, global_model, global_optimizer, args):
         for local_param, global_param in zip(model.parameters(), global_model.parameters()):
             if global_param.grad is not None:
                 break
-            global_param._grad = local_param.grad
+            global_param._grad = local_param.grad  #TODO Asynchronous update of θ using dθ and of θv using dθv
 
         global_optimizer.step()
 
@@ -113,6 +111,8 @@ def process_test(global_model, args):
     episode_reward = 0.0
     curr_step = 0
     curr_episode=0
+    hx = None
+    cx = None
     actions = deque(maxlen=args.max_actions)
     action_list=[]
     while True:
@@ -158,8 +158,8 @@ def process_test(global_model, args):
                print('New best average reward of %s! Model is improving' % round(best_average, 3))
             if flag:
                 model_already_saved=False
-                for model in saved_models:
-                    if model == action_list:
+                for modl in saved_models:
+                    if modl == action_list:
                         model_already_saved = True
                 if not model_already_saved:
                     copied_list = copy(action_list)
@@ -170,7 +170,10 @@ def process_test(global_model, args):
                 record_best_run(model, args, index)
                 torch.save(model.state_dict(),join(args.saved_path, '%s.dat' % args.environment))
             if save_flag:
-                mkdir('saved_models/run%s' % index)
+                try:
+                    mkdir('saved_models/run%s' % index)
+                except:
+                    pass
                 torch.save(model.state_dict(),join('saved_models/run%s' % index,'%s.dat' % args.environment))
             print('Episode %s - Reward: %s, Best: %s, Average: %s' % (index, round(episode_reward, 3),round(best_reward, 3),round(average, 3)))
 
@@ -197,7 +200,6 @@ def record_best_run(model, args, episode): #record video
     state = torch.from_numpy(env.reset())
     hx = torch.zeros((1, 512), dtype=torch.float)
     cx = torch.zeros((1, 512), dtype=torch.float)
-    #TODO include steps for second so it does not get to the end of the timer if stuck
     while True:
         logit, value, hx, cx = model(state, hx, cx)
         policy = F.softmax(logit, dim=1)
