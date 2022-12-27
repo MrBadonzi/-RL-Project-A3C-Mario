@@ -2,8 +2,8 @@ import argparse
 import os
 import torch
 from gym.wrappers import Monitor
-from Project.all_in_one_env import wrap_environment
-from Project.model import ActorCritic
+from all_in_one_env import wrap_environment
+from model import ActorCritic
 import torch.nn.functional as F
 
 os.environ['OMP_NUM_THREADS'] = '1'
