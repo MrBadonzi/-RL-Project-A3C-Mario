@@ -5,6 +5,7 @@ import torch
 from gym_super_mario_bros.actions import (COMPLEX_MOVEMENT,RIGHT_ONLY,SIMPLE_MOVEMENT)
 from all_in_one_env import wrap_environment
 from optimizer import GlobalAdam
+from optimizer import GlobalRMSprop
 from model import ActorCritic
 from train import process_train
 from train import process_test
@@ -20,7 +21,7 @@ Action_space_choices = {
 Beta = 0.01
 Environment = "SuperMarioBros-1-1-v0"
 Gamma = 0.9
-Learning_rate = 1e-4
+Learning_rate = 1e-3
 Max_actions = 200
 Num_episodes = 100000
 Num_processes = 4
@@ -39,7 +40,8 @@ def train(args):
         torch.cuda.manual_seed(123)
         global_model.cuda()
     global_model.share_memory()
-    global_optimizer = GlobalAdam(global_model.parameters(),lr=args.learning_rate)
+    #global_optimizer = GlobalAdam(global_model.parameters(),lr=args.learning_rate)
+    global_optimizer = GlobalRMSprop(global_model.parameters(), lr=args.learning_rate)
     processes = []
 
     for index in range(args.num_processes):
