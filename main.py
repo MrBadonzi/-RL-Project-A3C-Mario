@@ -4,8 +4,7 @@ from os.path import join
 import torch
 from gym_super_mario_bros.actions import (COMPLEX_MOVEMENT,RIGHT_ONLY,SIMPLE_MOVEMENT)
 from all_in_one_env import wrap_environment
-from optimizer import GlobalAdam
-from optimizer import GlobalRMSprop
+from optimizer import GlobalAdam,GlobalRMSprop
 from model import ActorCritic
 from train import process_train
 from train import process_test
@@ -21,7 +20,8 @@ Action_space_choices = {
 Beta = 0.01
 Environment = "SuperMarioBros-1-1-v0"
 Gamma = 0.9
-Learning_rate = 1e-3
+Learning_rate = 1e-3  #FIXME 1e-4?
+Optimizer="RMSprop"
 Max_actions = 200
 Num_episodes = 100000
 Num_processes = 4
@@ -40,8 +40,10 @@ def train(args):
         torch.cuda.manual_seed(123)
         global_model.cuda()
     global_model.share_memory()
-    #global_optimizer = GlobalAdam(global_model.parameters(),lr=args.learning_rate)
-    global_optimizer = GlobalRMSprop(global_model.parameters(), lr=args.learning_rate)
+    if args.optimizer == "Adam":
+        global_optimizer = GlobalAdam(global_model.parameters(),lr=args.learning_rate)
+    else:
+        global_optimizer = GlobalRMSprop(global_model.parameters(), lr=args.learning_rate)
     processes = []
 
     for index in range(args.num_processes):
@@ -57,7 +59,6 @@ def train(args):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='')
-    # TODO reinsert action in argument?
     parser.add_argument('--action_space', choices=Action_space_choices,
                         help="Specify the action space to use as given by gym-super-mario-bros. Default : complex",
                         default=Action_space_choices["complex"])
@@ -68,8 +69,11 @@ if __name__ == "__main__":
     parser.add_argument('--gpu', action='store_true', help="Specify this parameter to run on GPU. Default: False")
     parser.add_argument('--gamma', type=float,
                         help=f"Specify the discount factor to use for rewards. Default : {Gamma}", default=Gamma)
-    parser.add_argument('--learning_rate', type=float, help=f"The learning rate to use. Default: {Learning_rate}",
-                        default=Learning_rate)
+    parser.add_argument('--learning_rate', type=float, help=f"The learning rate to use. Default: {Learning_rate}",default=Learning_rate)
+
+    parser.add_argument('--optimizer', type=str, choices=["Adam","RMSprop"],
+                        help=f"The optimizer to use. Default: {Optimizer} because it showed to converge with less iterations",default=Optimizer)
+
     parser.add_argument('--max_actions', type=int,
                         help=f"Specify the maximum number of actions to repeat while in the testing phase. Default: {Max_actions}",
                         default=Max_actions)
