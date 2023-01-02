@@ -71,11 +71,17 @@ class CustomReward(Wrapper):
     def __init__(self, env):
         super(CustomReward, self).__init__(env)
         self._current_score = 0
+        self._current_coins=0
+        self.remaining_time=400
 
     def step(self, action):
         state, reward, done, info = self.env.step(action)
-        reward += (info['score'] - self._current_score) / 40.0
+        reward+=-(-info['time']+self.remaining_time)*3/4 #FIXME reduce greatly time importance
+        reward += (info['score'] - self._current_score) / 30.0  #FIXME previously was 40.0 but was to enhance the score
+        reward+= (info['coins'] - self._current_coins)
         self._current_score = info['score']
+        self._current_coins= info['coins']  #FIXME added
+        self.remaining_time = info['time']  # FIXME added
         if done:
             if info['flag_get']: #wins the stage
                 reward += 350.0
@@ -83,8 +89,6 @@ class CustomReward(Wrapper):
                 reward -= 50.0 #episode ended because the character died or time is over
         return state, reward / 10.0, done, info
 
-
-#TODO Fix this mess : too many classes
 def wrap_environment(environment, action_space):
     env = make(environment)
     env = JoypadSpace(env, action_space)
