@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import torch
 from gym import make, ObservationWrapper, Wrapper
 from gym.spaces import Box
 from nes_py.wrappers import JoypadSpace
@@ -76,12 +77,8 @@ class CustomReward(Wrapper):
 
     def step(self, action):
         state, reward, done, info = self.env.step(action)
-        reward+=-(-info['time']+self.remaining_time)*3/4 #FIXME reduce greatly time importance
-        reward += (info['score'] - self._current_score) / 30.0  #FIXME previously was 40.0 but was to enhance the score
-        reward+= (info['coins'] - self._current_coins)
+        reward += (info['score'] - self._current_score) / 40.0
         self._current_score = info['score']
-        self._current_coins= info['coins']  #FIXME added
-        self.remaining_time = info['time']  # FIXME added
         if done:
             if info['flag_get']: #wins the stage
                 reward += 350.0
@@ -98,3 +95,10 @@ def wrap_environment(environment, action_space):
     env = NormalizeFloats(env) #last step of preprocessing : normalizes observations
     env = CustomReward(env)
     return env
+
+
+def from_tuple_to_tensor(tuple_of_np):
+    tensor = torch.zeros((len(tuple_of_np), tuple_of_np[0].shape[1],tuple_of_np[0].shape[2],tuple_of_np[0].shape[3]))
+    for i, x in enumerate(tuple_of_np):
+        tensor[i] = torch.FloatTensor(x)
+    return tensor
