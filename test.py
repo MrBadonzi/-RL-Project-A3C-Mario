@@ -5,7 +5,6 @@ import torch
 from all_in_one_env import wrap_environment
 from model import ActorCritic
 import torch.nn.functional as F
-
 from gym.wrappers import Monitor
 
 Action_space_choices = {
@@ -22,7 +21,7 @@ def get_args():
     parser.add_argument('--action_space', choices=Action_space_choices,
                         help="Specify the action space to use as given by gym-super-mario-bros. Default : complex",
                         default=Action_space_choices["complex"])
-    parser.add_argument("--saved_path", type=str, default="best_models/SuperMarioBros-1-1-v0.dat")
+    parser.add_argument("--saved_path", type=str, default="best_models/A3c_Model/SuperMarioBros-1-1-v0.dat")
     parser.add_argument("--output_path", type=str, default="output")
     parser.add_argument('--gpu', action='store_true', help = "Specify this parameter to run on GPU. Default: False")
     args = parser.parse_args()
